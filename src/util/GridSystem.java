@@ -2,6 +2,8 @@ package util;
 
 import com.sun.javaws.exceptions.InvalidArgumentException;
 import javafx.scene.Node;
+import javafx.scene.effect.BlurType;
+import javafx.scene.effect.DropShadow;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
@@ -19,9 +21,13 @@ public class GridSystem {
     private double width;
     private double height;
 
-    // main menber
+    // main member
     private double stepSizeX;
     private double stepSizeY;
+    // step for grid
+    private double lineStepX = 1;
+    private double lineStepY = 1;
+    private final static double STEP_CHANGE_LIMIT = 10;
 
     public final static double WIDTH = 1400;
     public final static double HEIGHT = 1000;
@@ -50,6 +56,13 @@ public class GridSystem {
         // calculate the step sizes
         stepSizeX = width / (x2 - x1);
         stepSizeY = height / (y2 - y1);
+
+        if (x2 - x1 <= STEP_CHANGE_LIMIT){
+            lineStepX = 0.1;
+        }
+        if (y2 - y1 <= STEP_CHANGE_LIMIT){
+            lineStepY = 0.1;
+        }
     }
 
     public void setCanvas(Pane canvas) {
@@ -104,10 +117,25 @@ public class GridSystem {
         }
         stepSizeX = width / (x2 - x1);
         stepSizeY = height / (y2 - y1);
+
+        if (x2 - x1 <= STEP_CHANGE_LIMIT){
+            lineStepX = 0.1;
+        }
+        else {
+            lineStepX = 1;
+        }
+        if (y2 - y1 <= STEP_CHANGE_LIMIT){
+            lineStepY = 0.1;
+        }
+        else{
+            lineStepY = 1;
+        }
+
     }
 
-    public void setY2(double y2) {
+    public void setY2(double y2) throws Exception{
         this.y2 = y2;
+        resetStepSize();
     }
 
     public double getWidth() {
@@ -164,11 +192,11 @@ public class GridSystem {
     }
 
     public double translateToCanvasX(double x){
-        return (x * stepSizeX - x1);
+        return (x - x1) * stepSizeX;
     }
 
     public double translateToCanvasY(double y){
-        return height - (y * stepSizeY - y1);
+        return height - (y - y1) * stepSizeY;
     }
 
     public double translateToGridX(double x){
@@ -189,10 +217,12 @@ public class GridSystem {
 
     // method for draw the grid lines
     public void draw() {
+        // create drop shadow
+        DropShadow dropShadow = new DropShadow(BlurType.GAUSSIAN, Color.BLUE, 5, 0.2, 0, 0);
         // draw the gird lines
         // first draw the main axis
-        Line xAxis = new Line(0, y2 * stepSizeY, width, y2 * stepSizeY); // x axis
-        Line yAxis = new Line(stepSizeX * Math.abs(x1), 0, stepSizeX * Math.abs(x1), height);
+        Line xAxis = new Line(0, translateToCanvasY(0), width, translateToCanvasY(0));
+        Line yAxis = new Line(translateToCanvasX(0), 0, translateToCanvasX(0), height);
 
         // set the color and line configurations
         if (axisColor == null){
@@ -204,10 +234,12 @@ public class GridSystem {
             yAxis.setStroke(axisColor);
         }
 
-        // set the unique udentifier for grid lines
+        // set the unique identifier for grid lines
         xAxis.setUserData("gridLine");
         yAxis.setUserData("gridLine");
 
+        xAxis.setEffect(dropShadow);
+        yAxis.setEffect(dropShadow);
 
         xAxis.setStrokeWidth(4);
         yAxis.setStrokeWidth(4);
@@ -224,33 +256,80 @@ public class GridSystem {
 
     private void drawXLines() {
         // draw the x lines
-        for (int i = 0; i < (x2 - x1); i++) {
-            final Line line = new Line(i * stepSizeX, 0, i * stepSizeX, height);
-            if (lineColor == null) {
-                line.setStroke(Color.GRAY);
-            } else {
-                line.setStroke(lineColor);
+        if (lineStepX == 1){
+            for (int i = (int) x1; i <= (int) x2; i++) {
+                double v = translateToCanvasX(i);
+                final Line line = new Line(v, 0, v, height);
+                if (lineColor == null) {
+                    line.setStroke(Color.GRAY);
+                } else {
+                    line.setStroke(lineColor);
+                }
+                line.setStrokeWidth(1);
+                line.setUserData("gridLine");
+                // add to the canvas
+                canvas.getChildren().add(line);
             }
-            line.setStrokeWidth(1);
-            line.setUserData("gridLine");
-            // add to the canvas
-            canvas.getChildren().add(line);
+        }
+        else if (lineStepX == 0.1){
+            for (int i = (int) (x1*10); i <= (int) (x2*10); i++){
+                double v = translateToCanvasX(((double) i)/10);
+                final Line line = new Line(v, 0, v, height);
+                if (lineColor == null) {
+                    line.setStroke(Color.GRAY);
+                } else {
+                    line.setStroke(lineColor);
+                }
+                if (i%10 == 0){
+                  line.setStrokeWidth(2.0);
+                }
+                else{
+                    line.setStrokeWidth(0.5);
+                }
+
+                line.setUserData("gridLine");
+                // add to the canvas
+                canvas.getChildren().add(line);
+            }
         }
     }
 
     private void drawYLines() {
         // draw the x lines
-        for (int i = 0; i < (y2 - y1); i++) {
-            final Line line = new Line(0, i * stepSizeY, width, stepSizeY * i);
-            if (lineColor == null) {
-                line.setStroke(Color.GRAY);
-            } else {
-                line.setStroke(lineColor);
+        if (lineStepY == 1){
+            for (int i = (int) y1; i < (int) y2; i++) {
+                final Line line = new Line(0, translateToCanvasY(i), width, translateToCanvasY(i));
+                if (lineColor == null) {
+                    line.setStroke(Color.GRAY);
+                } else {
+                    line.setStroke(lineColor);
+                }
+                line.setStrokeWidth(1);
+                line.setUserData("gridLine");
+                // add to the canvas
+                canvas.getChildren().add(line);
             }
-            line.setStrokeWidth(1);
-            line.setUserData("gridLine");
-            // add to the canvas
-            canvas.getChildren().add(line);
+        }
+        else if (lineStepY == 0.1){
+            for (int i = (int) (y1*10); i <= (int) (y2*10); i++){
+                double v = translateToCanvasY(((double) i)/10);
+                final Line line = new Line(0, v, width, v);
+                if (lineColor == null) {
+                    line.setStroke(Color.GRAY);
+                } else {
+                    line.setStroke(lineColor);
+                }
+                if (i%10 == 0){
+                    line.setStrokeWidth(2.0);
+                }
+                else{
+                    line.setStrokeWidth(0.5);
+                }
+
+                line.setUserData("gridLine");
+                // add to the canvas
+                canvas.getChildren().add(line);
+            }
         }
     }
 

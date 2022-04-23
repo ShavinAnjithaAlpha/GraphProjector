@@ -24,8 +24,8 @@ public class GridLimitDialog extends Dialog<double[]> {
         TextField x2Entry = new TextField(String.format("%.2f", gridSystem.getX2()));
 
         // create the sliders
-        final Slider x1Slider = new Slider(0, 100, gridSystem.getX1());
-        final Slider x2Slider = new Slider(0, 100, gridSystem.getX2());
+        final Slider x1Slider = new Slider(-50, 50, gridSystem.getX1());
+        final Slider x2Slider = new Slider(-50, 50, gridSystem.getX2());
         // bind the values of the slider and textfileds
         x1Entry.textProperty().bind(x1Slider.valueProperty().asString("%.2f"));
         x2Entry.textProperty().bind(x2Slider.valueProperty().asString("%.2f"));
@@ -35,15 +35,15 @@ public class GridLimitDialog extends Dialog<double[]> {
         final TextField y2Entry = new TextField(String.format("%.2f", gridSystem.getY2()));
 
         // create the y sliders
-        final Slider y1Slider = new Slider(0, 100, gridSystem.getY1());
-        final Slider y2Slider = new Slider(0, 100, gridSystem.getY2());
+        final Slider y1Slider = new Slider(-50, 50, gridSystem.getY1());
+        final Slider y2Slider = new Slider(-50, 50, gridSystem.getY2());
 
         // bind the properties
         y1Entry.textProperty().bind(y1Slider.valueProperty().asString("%.2f"));
         y2Entry.textProperty().bind(y2Slider.valueProperty().asString("%.2f"));
 
         for (Slider slider : Arrays.asList(new Slider[] {x1Slider, x2Slider, y1Slider, y2Slider})){
-            slider.setPrefWidth(450);
+            slider.setPrefWidth(650);
             slider.setShowTickMarks(true);
             slider.setBlockIncrement(1.0);
         }
@@ -73,7 +73,7 @@ public class GridLimitDialog extends Dialog<double[]> {
         setGraphic(gridPane);
         setTitle("Grid Limit Change Dialog");
 
-        // setup the dialog buttons
+        // set up the dialog buttons
         final ButtonType apply_limits = new ButtonType("Apply Limits", ButtonBar.ButtonData.APPLY);
         final ButtonType cancel = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
 

@@ -26,7 +26,7 @@
         -fx-border-width : 1px;
         -fx-border-radius : 2em;
         -fx-width : 5px;
-        -fx-height : 5px;}
+        -fx-height : 15px;}
 
 .slider .thumb:hover {
     -fx-background-color  : rgb(200, 50, 0);}

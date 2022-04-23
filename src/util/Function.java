@@ -65,6 +65,25 @@ public class Function {
         Function.increment = increment;
     }
 
+    public double integrate(double x1 , double x2){
+        boolean change = false;
+        if (x1 > x2){
+            double temp = x1;
+            x1 = x2;
+            x2 = temp;
+        }
+        double value = 0;
+        double x = x1;
+        while (x <= x2){
+            value += getValue(x + increment/2) * increment;
+            x += increment;
+        }
+
+        if (change)
+            value = -value;
+        return value;
+    }
+
     @Override
     public String toString() {
         return String.format("%s" , function);

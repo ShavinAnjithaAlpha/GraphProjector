@@ -1,6 +1,7 @@
 import com.sun.javaws.exceptions.InvalidArgumentException;
 import dialog.GridLimitDialog;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -13,6 +14,9 @@ import javafx.geometry.Point2D;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.effect.DropShadow;
+import javafx.scene.image.Image;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
@@ -212,9 +216,9 @@ public class GraphProjector extends Application {
             Point gridPoint = gridSystem.translateToGrid(new Point(event.getX(), event.getY()));
             // show the canvas popup
             Point2D point = canvas.localToScreen(event.getX(), event.getY());
-            ((Text) canvasPopup.getContent().get(1)).setText(String.format("X : %.2f\nY : %.2f",
-                                                            gridPoint.getX() , gridPoint.getY()));
-            canvasPopup.show(canvas, point.getX(), point.getY());
+//            ((Text) canvasPopup.getContent().get(1)).setText(String.format("X : %.2f\nY : %.2f",
+//                                                            gridPoint.getX() , gridPoint.getY()));
+//            canvasPopup.show(canvas, point.getX(), point.getY());
         });
 
         HBox sliderBox = setUpSlider();
@@ -318,9 +322,15 @@ public class GraphProjector extends Application {
             if (array.isPresent()){
                 // call to the update method
                 updateCanvas();
+                // chnage the main slider limits
+                mainSlider.setMin(gridSystem.getX1());
+                mainSlider.setMax(gridSystem.getX2());
             }
         }));
         vBox.getChildren().add(changeLimitsButton);
+
+        // create the integrate tool box
+        setUpIntegrateBox(vBox);
 
         // set the left side
         borderPane.setLeft(vBox);
@@ -496,6 +506,78 @@ public class GraphProjector extends Application {
 
         vBox.getChildren().addAll(titleLabel, gridPane);
 
+    }
+
+    private final void setUpIntegrateBox(VBox vBox){
+
+        TextField beginXField = new TextField();
+        beginXField.setPromptText("start X");
+        TextField endXField = new TextField();
+        endXField.setPromptText("end X");
+        beginXField.setOnKeyPressed(new EventHandler<KeyEvent>() {
+            @Override
+            public void handle(KeyEvent event) {
+                if (event.getCode() == KeyCode.ENTER){
+                    endXField.requestFocus();
+                }
+            }
+        });
+
+        // create the progress indicator
+        ProgressIndicator progressIndicator = new ProgressIndicator();
+        progressIndicator.setMaxSize(40, 40);
+        progressIndicator.setVisible(false);
+
+        Button integrateButton = new Button("Integrate"); // button for fire the integrate
+        Label integrateLabel = new Label(); // label for display the integrate value
+        integrateLabel.setId("integrateLabel");
+        integrateButton.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                try {
+                    integrateFunction(Double.valueOf(beginXField.getText()), Double.valueOf(endXField.getText()), integrateLabel,
+                            progressIndicator);
+                } catch (NumberFormatException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+        endXField.setOnKeyPressed(new EventHandler<KeyEvent>() {
+            @Override
+            public void handle(KeyEvent event) {
+                if (event.getCode() == KeyCode.ENTER){
+                    try {
+                        integrateFunction(Double.valueOf(beginXField.getText()), Double.valueOf(endXField.getText()),integrateLabel,
+                                progressIndicator);
+                    } catch (NumberFormatException e) {
+                        e.printStackTrace();
+                    }
+                }
+                else if (event.getCode() == KeyCode.LEFT){
+                    beginXField.requestFocus();
+                }
+            }
+        });
+
+
+
+        GridPane gridPane = new GridPane();
+        gridPane.prefWidthProperty().bind(vBox.prefWidthProperty());
+        gridPane.setVgap(12);
+        gridPane.setHgap(20);
+        gridPane.setId("functionVBox");
+
+        gridPane.add(new Label("from : "), 0, 0);
+        gridPane.add(new Label("to : "), 1, 0);
+        gridPane.add(beginXField, 0, 1);
+        gridPane.add(endXField, 1,1);
+        gridPane.add(integrateButton, 0, 2, 2, 1);
+        gridPane.add(integrateLabel,0, 3);
+        gridPane.add(progressIndicator, 1, 3);
+
+        vBox.getChildren().add(new Label("Integrate"));
+        vBox.getChildren().add(gridPane);
     }
 
     final private void setSliderText(Label sliderLabel , Number value){
@@ -716,6 +798,30 @@ public class GraphProjector extends Application {
         popup.getContent().addAll(rect, position);
 
         return popup;
+    }
+
+    private void integrateFunction(double x1 , double x2 , Label label, ProgressIndicator indicator){
+
+        indicator.setVisible(true);
+        Thread integrateThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                if (currentFunction != null){
+                    double intgerateValue = currentFunction.integrate(x1, x2);
+                    Platform.runLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            label.setText(String.format("= %.5f", intgerateValue));
+                            indicator.setVisible(false);
+                        }
+                    });
+                }
+                else
+                    indicator.setVisible(false);
+            }
+        });
+
+        integrateThread.start();
     }
 
 }

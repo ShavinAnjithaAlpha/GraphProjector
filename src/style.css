@@ -3,7 +3,7 @@
 
 #canvas {
     -fx-background-color : rgb(40, 40,40);
-    -fx-border-color : rgb(40, 40, 40);
+    /*-fx-border-color : rgb(240, 40, 40);*/
     -fx-border-width : 0;
     -fx-background-border-color : rgb(40, 40, 40)}
 #XYLabel {
@@ -13,8 +13,8 @@
 .button {
     -fx-background-color : rgba(20, 0, 180, 0.9);
     -fx-text-fill : white;
-    -fx-border-radius : 3em;
-    -fx-font-size : 18;}
+    -fx-border-radius: 8px;
+    -fx-font-size : 20;}
 
 .button:hover {
     -fx-background-color  :rgb(0, 0, 200);}
@@ -32,7 +32,8 @@
     -fx-border-color : rgb(40, 40, 40);}
 
 .vbox {
-        -fx-background-color : rgb(30, 30, 30);}
+        -fx-background-color : rgb(30, 30, 30);
+        -fx-border-width: 0;}
 
 .grid-pane {
     -fx-background-color : rgb(30, 30, 30)}
@@ -139,7 +140,6 @@
         -fx-border-color : rgb(0, 150, 250);
         -fx-border-width : 4px;
         -fx-border-radius : 5em;
-        -fx-width : 10px;
         -fx-width : 10px;}
 
  .slider .thumb:hover {
@@ -206,3 +206,9 @@
 #deleteButton {
         -fx-background-color : red;
         -fx-padding : 8px;}
+
+#integrateLabel {
+    -fx-font-size: 25px;
+    -fx-font-weight: 500;
+    -fx-text-fill: crimson;
+}

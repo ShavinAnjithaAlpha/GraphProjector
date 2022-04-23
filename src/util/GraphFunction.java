@@ -1,5 +1,7 @@
 package util;
 
+import javafx.scene.effect.BlurType;
+import javafx.scene.effect.DropShadow;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.LineTo;
@@ -39,12 +41,13 @@ public class GraphFunction extends Function{
 
     public void draw(){
         graphPath.setStroke(color);
+        graphPath.setEffect(new DropShadow(BlurType.GAUSSIAN, Color.BLACK, 20, 0.1, 0, 0));
         // draw the graph on the canvas use the grid system
         final Point startPoint = grid.translateToCanvas(getPoint(grid.getX1()));
         final MoveTo moveTo = new MoveTo(startPoint.getX(), startPoint.getY());
 
         // add to the Path elemtn
-        graphPath.setStrokeWidth(2);
+        graphPath.setStrokeWidth(4);
         graphPath.getElements().add(moveTo);
 
         double x = grid.getX1();
