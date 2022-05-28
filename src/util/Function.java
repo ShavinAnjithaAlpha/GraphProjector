@@ -1,5 +1,7 @@
 package util;
 
+import javax.script.ScriptException;
+
 public class Function {
 
     // declare the main data members
@@ -28,7 +30,13 @@ public class Function {
     }
 
     public double getValue(double x){
-        return FunctionValue.getValue(function , x);
+        try{
+            return FunctionValue.getValue(function , x);
+        }
+        catch (ScriptException ex){
+            ex.printStackTrace();
+        }
+        return 0;
     }
 
     public void setGrid(GridSystem grid) {
@@ -43,6 +51,11 @@ public class Function {
     public SimpleLine getTangentLine(double x){
         Point point = new Point(x , getValue(x));
         return new SimpleLine(getTangent(x), point);
+    }
+
+    public SimpleLine getNormalLine(double x){
+        Point point = new Point(x, getValue(x));
+        return new SimpleLine(-1/getTangent(x), point);
     }
 
 

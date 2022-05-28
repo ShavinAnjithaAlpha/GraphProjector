@@ -362,5 +362,17 @@ public class GridSystem {
     public static double getBasicHeight(){
         return HEIGHT;
     }
+
+    public GridSystem copy(){
+        // create nre Grid System Instant using this instant value
+        GridSystem grid = null;
+        try {
+            grid = new GridSystem(this.x1, this.y1, this.x2, this.y2, getWidth(), getHeight());
+        } catch (InvalidArgumentException e) {
+            e.printStackTrace();
+        }
+        return grid;
+
+    }
 }
 

@@ -10,6 +10,12 @@
         -fx-text-fill : white;
         -fx-font-size : 25;}
 
+#paraText {
+    -fx-text-fill: rgb(120, 120, 120);
+    -fx-font-size: 20;
+
+}
+
 .button {
     -fx-background-color : rgba(20, 0, 180, 0.9);
     -fx-text-fill : white;
@@ -27,9 +33,16 @@
     -fx-border-width : 0px;}
 
 .scroll-pane {
-    -fx-border-width : 0;
-    -fx-background-border-width : 0;
+    -fx-border-width : 0px;
+    -fx-background-border-width : 0px;
     -fx-border-color : rgb(40, 40, 40);}
+
+.scroll-pane > .corner {
+    -fx-background-color: black;
+    -fx-border-color: rgb(30, 30, 30);
+}
+
+.scroll-pane .pane {-fx-border-color: none;}
 
 .vbox {
         -fx-background-color : rgb(30, 30, 30);
@@ -51,10 +64,61 @@
     -fx-background-color : rgb(30, 30, 30);
     -fx-border-width : 0;}
 
+.menu {
+    -fx-border-width : 0px;
+    -fx-background-color: blue;
+}
+
  .menu:hover {
         -fx-background-color : blue;
-        -fx-text-fill : white;}
+        -fx-text-fill : white;
+        -fx-border-width: 0px}
 
+ .menu-item  , .radio-button{
+     -fx-background-color: blue;
+     -fx-border-width: 0px;
+     -fx-border-color: none;
+     -fx-text-fill: rgb(200, 200, 200);
+     -fx-padding: 5px;
+ }
+
+ .menu-item .label {
+     -fx-font-size: 18px;
+     -fx-text-fill: rgba(255, 255, 255, 0.87);
+     -fx-border-width: 0px;
+     -fx-padding: 0.1em;
+ }
+
+ .menu-item:hover {
+     -fx-background-color: darkblue;
+     -fx-text-fill: white;
+ }
+
+ .tab {
+        -fx-background-color: rgb(60, 60, 60);
+        -fx-min-width: 100px;
+        -fx-font-family: Arial;
+        -fx-font-size: 18;
+        -fx-text-fill: rgb(255, 255, 255);
+        -fx-max-height: 25px;
+        -fx-border-width: 0px;
+        -fx-border-color: none}
+
+.tab .label {-fx-text-fill: white;
+            -fx-border-color : none;}
+
+.tab:selected {
+    -fx-background-color: crimson;
+    -fx-text-fill: white;
+}
+
+.tab-pane *.tab-header-area *.tab-header-background {
+    -fx-background-color: rgba(25, 25, 25, 0.87);
+    -fx-tab-min-width:120px;
+    -fx-tab-max-width:120px;
+    -fx-tab-min-height:30px;
+    -fx-tab-max-height:30px;
+}
 
 .text-field {
     -fx-background-color : rgb(30,30, 30);
@@ -63,7 +127,7 @@
     -fx-insets : 5 5 5 5;
     -fx-font-size : 20;
     -fx-border-width : 2;
-    -fx-border-color : rgb(0, 0, 200);
+    -fx-border-color : rgba(0, 0, 180, 0.87);
     -fx-text-fill : white;}
 
 .text-field:focused {
@@ -122,8 +186,9 @@
     -fx-background-radius : 2em;}
 
  #separator {
-    -fx-background-color : rgb(50, 50, 50);
-    -fx-border-color : rgb(50, 50, 50);
+    -fx-background-color : rgba(50, 50, 50, 0.5);
+     -fx-opacity: 0.5;
+    -fx-border-color : rgba(50, 50, 50, 0.5);
     -fx-padding : 10, 0, 10, 0;}
 
 .slider {
@@ -211,4 +276,33 @@
     -fx-font-size: 25px;
     -fx-font-weight: 500;
     -fx-text-fill: crimson;
+}
+
+#delete-button {
+    -fx-background-color: none;
+}
+
+#delete-button:hover , #delete-button:pressed {
+        -fx-border-width: 0.5px;
+        -fx-border-color: gray;
+}
+
+.text-area {
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+    -fx-border-color: rgba(80, 8, 250, 0.7);
+    -fx-border-radius: 10px;
+    -fx-border-width: 2px;
+    -fx-font-family: "Ubuntu Mono";
+    -fx-font-size: 20px;
+}
+
+.text-area .content {
+    -fx-background-color:  rgb(30, 30, 30);
+    -fx-font-family: "Ubuntu Mono";
+    -fx-font-size: 20;
+}
+
+.text-area:focused .content {
+    -fx-background-color:  rgb(40, 40, 40);
 }

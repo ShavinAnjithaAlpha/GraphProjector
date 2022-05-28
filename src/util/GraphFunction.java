@@ -52,7 +52,7 @@ public class GraphFunction extends Function{
 
         double x = grid.getX1();
         while (x <= grid.getX2()){
-            // incerment the x value
+            // increment the x value
             x += stepSize;
             // get the new point
             Point endPoint = grid.translateToCanvas(getPoint(x));
@@ -60,6 +60,7 @@ public class GraphFunction extends Function{
             final LineTo lineTo = new LineTo(endPoint.getX(), endPoint.getY());
             // get the path and add
             graphPath.getElements().add(lineTo);
+
         }
 
         // add to the canvas
@@ -75,9 +76,9 @@ public class GraphFunction extends Function{
     }
 
     public void refresh(){
-        // remove the all the elemnt in the path
+        // remove the all the element in the path
         graphPath.getElements().clear();
-        // re draw the pgraph
+        // re draw the graph
         draw();
     }
 

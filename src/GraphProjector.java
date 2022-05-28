@@ -11,31 +11,30 @@ import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Point2D;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.effect.BlurType;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Ellipse;
-import javafx.scene.shape.Line;
-import javafx.scene.shape.Path;
-import javafx.scene.shape.Rectangle;
+import javafx.scene.shape.*;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.Popup;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
-import util.GraphFunction;
-import util.GridSystem;
-import util.Point;
-import util.SimpleLine;
+import util.*;
 import widgets.FunctionCell;
+import widgets.ParametricFunctionPane;
 import widgets.Rule;
 import widgets.TangentLineBox;
 
@@ -51,7 +50,7 @@ public class GraphProjector extends Application {
 
     private  Pane canvas;
     private Slider mainSlider;
-    private TextField mainFunctionBox;
+    private TextArea mainFunctionBox;
     private Label XYLabel;
     private TangentLineBox tangentLineBox;
     private Text functionPositionText;
@@ -65,11 +64,14 @@ public class GraphProjector extends Application {
     private Line tangentLine;
     private Ellipse functionPositionOval;
     private Rectangle XYBox;
+    private Path integrateArea;
     // grid system
     private GridSystem gridSystem;
     // declare the function list
     private ObservableList<GraphFunction> functionList;
     private GraphFunction currentFunction = null;
+
+    private String tangentLineMode = "tangent line";
 
     public static void main(String[] args) {
         launch(args);
@@ -80,26 +82,32 @@ public class GraphProjector extends Application {
         // create the function list
         functionList = FXCollections.observableArrayList();
 
-        // create the main layout widget of the window
-        final BorderPane borderPane = new BorderPane();
-        borderPane.getStylesheets().add(getClass().getResource("style.css").toExternalForm());
+        // create the vbox for ad the menu bar
+        final VBox vBox = new VBox();
+        vBox.setSpacing(0);
+        vBox.setPadding(new Insets(0));
+//        vBox.getStylesheets().add(getClass().getResource("style.css").toExternalForm());
+        // create the tab pane
+        final TabPane tabPane = new TabPane();
+        // create the main tab bar for pane
+        final Tab mainTab = new Tab("Plane Equations", setUpMainTab());
+        final Tab parametricTab = new Tab("Parametric Equations",
+                    new ParametricFunctionPane(gridSystem.copy())); // use the copy of existing grid system
+        // add all tab to the tab pane
+        tabPane.getTabs().addAll(mainTab, parametricTab);
+        tabPane.setFocusTraversable(false);
 
-        // set the display panel
-        setUpRight(borderPane);
-        // setuo the center
-        setUpCenter(borderPane);
-        // setup the tool box
-        setUpToolBox(borderPane);
-        // setup menu
-        setUpMenu(borderPane);
+        // add the all menu bar and tab pane to the vbox
+        vBox.getChildren().addAll(setUpMenu(), tabPane);
 
-
+        double screenWidth = Screen.getPrimary().getBounds().getWidth();
+        double screenHeight = Screen.getPrimary().getBounds().getHeight();
         // create the scene and add the border pane
-        final Scene scene = new Scene(borderPane, 1900, 1050 ,Color.rgb(50, 50, 50));
+        final Scene scene = new Scene(vBox, screenWidth, screenHeight ,Color.rgb(50, 50, 50));
+        scene.getStylesheets().add(getClass().getResource("style.css").toExternalForm());
         primaryStage.setTitle("Graph Projector v0.01");
         primaryStage.setScene(scene);
         primaryStage.setFullScreen(false);
-
         primaryStage.setX(0);
         primaryStage.setY(0);
 
@@ -108,21 +116,58 @@ public class GraphProjector extends Application {
 
     }
 
-    private final void setUpMenu(BorderPane borderPane){
+    private BorderPane setUpMainTab(){
+        // create the main layout widget of the window
+        final BorderPane borderPane = new BorderPane();
+
+        // set the display panel
+        setUpRight(borderPane);
+        // set up the center
+        setUpCenter(borderPane);
+        // set up the tool box
+        setUpToolBox(borderPane);
+
+        return borderPane;
+    }
+
+    private final MenuBar setUpMenu(){
         // create the menu bar
         final MenuBar menuBar = new MenuBar();
-        borderPane.setTop(menuBar);
         // create the menu for menu bar
         final Menu optionMenu = new Menu("Option");
+        createOptionMenu(optionMenu);
 
 
         // add to the menu bar
         menuBar.getMenus().addAll(optionMenu);
+        return menuBar;
 
     }
 
+    private final void createOptionMenu(Menu optionMenu){
+        // create the tangent line change mode menu item
+        Menu tangentModeMenu = new Menu("tangent line mode");
+        // create the radio button for this
+        ToggleGroup toggleGroup = new ToggleGroup();
+
+        for (String text : new String[] {"tangent line", "normal line", "tangent line with circle"}){
+            RadioMenuItem radioMenuItem = new RadioMenuItem(text);
+            radioMenuItem.setUserData(text);
+            radioMenuItem.setOnAction((event -> {
+                // action for change the tangent line mode
+                tangentLineMode = (String) toggleGroup.getSelectedToggle().getUserData();
+            }));
+            toggleGroup.getToggles().add(radioMenuItem);
+            // add to the mode menu
+            tangentModeMenu.getItems().add(radioMenuItem);
+        }
+        toggleGroup.getToggles().iterator().next().setSelected(true);
+
+        optionMenu.getItems().add(tangentModeMenu);
+    }
+
     private void setUpRight(BorderPane borderPane){
-        // create the vbox for pack the all of the items
+        // create the vbox for pack the all of items
         final VBox vBox = new VBox(5);
         // set the padding
         vBox.setPadding(new Insets(5));
@@ -137,7 +182,7 @@ public class GraphProjector extends Application {
         XYLabel.setId("XYLabel");
         XYLabel.setFont(new Font("verdana", 14));
 
-        // create the horizontal seperator
+        // create the horizontal separator
         final Separator separator1 = new Separator();
         separator1.setPadding(new Insets(10, 0, 10, 0));
         separator1.setOrientation(Orientation.HORIZONTAL);
@@ -166,6 +211,7 @@ public class GraphProjector extends Application {
         setUpFunctionList(vBox);
         // set the border pane left as the vbox
         borderPane.setRight(vBox);
+//        borderPane.getRight().setVisible(false);
         BorderPane.setMargin(vBox, new Insets(10));
     }
 
@@ -193,14 +239,15 @@ public class GraphProjector extends Application {
         gridPane.add(xRule, 1, 1);
         // create the scroll area for set up the canvas
         ScrollPane scrollPane = new ScrollPane();
-        scrollPane.setMaxSize(1400, 1000);
+        scrollPane.prefWidthProperty().bind(borderPane.prefWidthProperty());
+//        scrollPane.setMaxSize(1400, 1000);
         scrollPane.setContent(gridPane);
         //set the scroll bar policy
         scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         //set the border pane center
 
-        Popup canvasPopup = createCanvasPopup();
+//        Popup canvasPopup = createCanvasPopup();
 
         canvas.setOnMouseMoved(new EventHandler<MouseEvent>() {
             @Override
@@ -347,6 +394,9 @@ public class GraphProjector extends Application {
         gridPane.setPadding(new Insets(15));
 
         final ListView<GraphFunction> graphFunctionListView = new ListView<>(functionList);
+        graphFunctionListView.prefWidthProperty().bind(gridPane.prefWidthProperty().subtract(10));
+        graphFunctionListView.setPlaceholder(new Label("Nothing"));
+        graphFunctionListView.setMinWidth(250);
         graphFunctionListView.setId("functionBox");
 //        graphFunctionListView.setMinWidth(250);
         graphFunctionListView.setCellFactory(new Callback<ListView<GraphFunction>, ListCell<GraphFunction>>() {
@@ -366,12 +416,23 @@ public class GraphProjector extends Application {
             }
         });
 
+        graphFunctionListView.setOnKeyPressed(new EventHandler<KeyEvent>() {
+            @Override
+            public void handle(KeyEvent event) {
+                if (event.getCode() == KeyCode.DELETE) {
+                    if (graphFunctionListView.getSelectionModel().getSelectedItem() != null){
+                        deleteFunction(graphFunctionListView.getSelectionModel().getSelectedItem());
+                    }
+                }
+            }
+        });
+
         // create the delete button
         final Button deleteButton = new Button("delete");
         deleteButton.setId("deleteButton");
         // set the action to the delete button
         deleteButton.setOnAction((event -> {
-            // call to the delete the function from the list view
+            // call to delete the function from the list view
             if (graphFunctionListView.getSelectionModel().getSelectedItem() != null){
                 deleteFunction(graphFunctionListView.getSelectionModel().getSelectedItem());
             }
@@ -386,36 +447,36 @@ public class GraphProjector extends Application {
     private final void setUpFunctionBox(VBox vBox){
         // create the group box
         // create the line edit and add button for this
-        mainFunctionBox = new TextField();
+        mainFunctionBox = new TextArea();
         mainFunctionBox.prefWidthProperty().bind(vBox.prefWidthProperty().subtract(30));
-        mainFunctionBox.setPrefHeight(40);
+        mainFunctionBox.setPrefHeight(80);
         mainFunctionBox.setPromptText("Enter a function");
 
         // create the color chooser
         final ColorPicker colorPicker = new ColorPicker(Color.ORANGE);
-        // create the hbox
+        // create the h box
         final HBox hBox = new HBox(mainFunctionBox, colorPicker);
         hBox.setSpacing(10);
 
         // draw button
-        final Button drawButton = new Button("Draw");
+        final Button drawButton = new Button("Plot");
         drawButton.prefWidthProperty().bind(vBox.prefWidthProperty().subtract(30));
         drawButton.setPadding(new Insets(10, 10, 10, 10));
         drawButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
                 try {
-                    // draw the funcition
+                    // draw the function
                     String functionText = mainFunctionBox.getText();
                     GraphFunction function = new GraphFunction(functionText , gridSystem, canvas);
                     function.setColor(colorPicker.getValue());
                     addFunction(function , true);
                 } catch (NumberFormatException e) {
-                    // show the alert mesage
+                    // show the alert message
                     Alert warningBox =new Alert(Alert.AlertType.ERROR);
                     warningBox.setTitle("Function Format");
                     warningBox.setContentText("Please Enter the valid function for drawing!!!");
-                    warningBox.showingProperty();
+                    warningBox.show();
                 }
             }
         });
@@ -529,6 +590,13 @@ public class GraphProjector extends Application {
         progressIndicator.setVisible(false);
 
         Button integrateButton = new Button("Integrate"); // button for fire the integrate
+        Button deleteButton = new Button("delete", new ImageView(
+                new Image("img/trash.png", 30, 30, true, true, true)
+        ));
+        deleteButton.setId("delete-button");
+        deleteButton.setPadding(new Insets(5));
+        deleteButton.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
+
         Label integrateLabel = new Label(); // label for display the integrate value
         integrateLabel.setId("integrateLabel");
         integrateButton.setOnAction(new EventHandler<ActionEvent>() {
@@ -542,6 +610,13 @@ public class GraphProjector extends Application {
                 }
             }
         });
+
+        deleteButton.setOnAction((event -> {
+            // clear the label text
+            integrateLabel.setText("");
+            integrateArea.getElements().clear(); // clear integrate area
+
+        }));
 
         endXField.setOnKeyPressed(new EventHandler<KeyEvent>() {
             @Override
@@ -572,9 +647,12 @@ public class GraphProjector extends Application {
         gridPane.add(new Label("to : "), 1, 0);
         gridPane.add(beginXField, 0, 1);
         gridPane.add(endXField, 1,1);
-        gridPane.add(integrateButton, 0, 2, 2, 1);
+        gridPane.add(integrateButton, 0, 2);
+        gridPane.add(deleteButton, 1, 2);
         gridPane.add(integrateLabel,0, 3);
         gridPane.add(progressIndicator, 1, 3);
+
+        gridPane.setAlignment(Pos.CENTER);
 
         vBox.getChildren().add(new Label("Integrate"));
         vBox.getChildren().add(gridPane);
@@ -624,7 +702,7 @@ public class GraphProjector extends Application {
 
             xLine.setStroke(Color.LAWNGREEN);
             yLine.setStroke(Color.LAWNGREEN);
-            // added to thec anvas
+            // added to the canvas
             canvas.getChildren().addAll(xLine, yLine);
 
         }
@@ -659,7 +737,6 @@ public class GraphProjector extends Application {
         // convert the value to double
         // and create the new tangent line object
         final Point center = currentFunction.getPoint(value.doubleValue());
-
         // build the new simple line
         final SimpleLine simpleLine = currentFunction.getTangentLine(value.doubleValue());
         Point[] points = simpleLine.getPoints(center);
@@ -669,45 +746,91 @@ public class GraphProjector extends Application {
         Point endPoint = gridSystem.translateToCanvas(points[1]);
 
         Point canvasPoint = gridSystem.translateToCanvas(center);
-        if (this.tangentLine == null){
-            // create the new tangent line
-            this.tangentLine = new Line(startPoint.getX(), startPoint.getY(), endPoint.getX(), endPoint.getY());
-            this.tangentLine.setStroke(Color.RED);
-            this.tangentLine.setStrokeWidth(3);
-            this.tangentLine.setSmooth(true);
 
-            // add to the canvas
-            canvas.getChildren().add(this.tangentLine);
+        if (tangentLineMode == "tangent line"){
 
-            // create the function circle
-            functionPositionOval = new Ellipse();
-            functionPositionOval.setCenterX(canvasPoint.getX());
-            functionPositionOval.setCenterY(canvasPoint.getY());
-            functionPositionOval.setStrokeWidth(5);
-            functionPositionOval.setRadiusX(7);
-            functionPositionOval.setRadiusY(7);
+            if (this.tangentLine == null){
+                // create the new tangent line
+                this.tangentLine = new Line(startPoint.getX(), startPoint.getY(), endPoint.getX(), endPoint.getY());
+                this.tangentLine.setEffect(new DropShadow(BlurType.GAUSSIAN, Color.BLACK, 20, 0.1, 0, 0));
+                this.tangentLine.setStroke(Color.RED);
+                this.tangentLine.setStrokeWidth(2);
+                this.tangentLine.setStrokeLineCap(StrokeLineCap.ROUND);
+                this.tangentLine.setSmooth(true);
 
-            functionPositionOval.setStroke(Color.HOTPINK);
-            functionPositionOval.setFill(Color.RED);
+                // create the function circle
+                functionPositionOval = new Ellipse(canvasPoint.getX(), canvasPoint.getY(),
+                                            7, 7);
+                functionPositionOval.setStrokeWidth(5);
+                functionPositionOval.setEffect(new DropShadow(BlurType.GAUSSIAN, Color.BLACK, 20, 0.1, 0, 0));
+                functionPositionOval.setStroke(Color.RED);
+                functionPositionOval.setFill(Color.RED);
 
-            // add to the canvas
-            canvas.getChildren().add(functionPositionOval);
+                // add to the canvas
+                canvas.getChildren().addAll(this.tangentLine, functionPositionOval);
+            }
+            else{
+                setPoints(this.tangentLine, startPoint, endPoint);
+                // set the oval position
+                functionPositionOval.setCenterX(canvasPoint.getX());
+                functionPositionOval.setCenterY(canvasPoint.getY());
+            }
 
-            // create the XY box
+            if (!(canvas.getChildren().contains(tangentLine) && canvas.getChildren().contains(functionPositionOval))){
+                canvas.getChildren().addAll(tangentLine, functionPositionOval);
+            }
         }
-        else{
-            setPoints(this.tangentLine, startPoint, endPoint);
-            // set the oval position
-            functionPositionOval.setCenterX(canvasPoint.getX());
-            functionPositionOval.setCenterY(canvasPoint.getY());
+        else if (tangentLineMode == "normal line"){
+            // create the normal line
+            final SimpleLine normalLiene = currentFunction.getNormalLine(value.doubleValue());
+            Point[] normalPoints = normalLiene.getPoints(center);
+
+            Point normalStartPoint = gridSystem.translateToCanvas(normalPoints[0]);
+            Point normalEndPoint = gridSystem.translateToCanvas(normalPoints[1]);
+
+            if (this.tangentLine == null){
+                // create the new tangent line
+                this.tangentLine = new Line(normalStartPoint.getX(), normalStartPoint.getY(), normalEndPoint.getX(), normalEndPoint.getY());
+                this.tangentLine.setStroke(Color.RED);
+                this.tangentLine.setStrokeWidth(3);
+                this.tangentLine.setSmooth(true);
+
+                // add to the canvas
+                canvas.getChildren().add(this.tangentLine);
+
+                // create the function circle
+                functionPositionOval = new Ellipse();
+                functionPositionOval.setCenterX(canvasPoint.getX());
+                functionPositionOval.setCenterY(canvasPoint.getY());
+                functionPositionOval.setStrokeWidth(5);
+                functionPositionOval.setRadiusX(7);
+                functionPositionOval.setRadiusY(7);
+
+                functionPositionOval.setStroke(Color.HOTPINK);
+                functionPositionOval.setFill(Color.RED);
+
+                // add to the canvas
+                canvas.getChildren().add(functionPositionOval);
+            }
+            else{
+                setPoints(this.tangentLine, normalStartPoint, normalEndPoint);
+                // set the oval position
+                functionPositionOval.setCenterX(canvasPoint.getX());
+                functionPositionOval.setCenterY(canvasPoint.getY());
+            }
+
+            if (!(canvas.getChildren().contains(tangentLine) && canvas.getChildren().contains(functionPositionOval))){
+                canvas.getChildren().addAll(tangentLine, functionPositionOval);
+            }
+
+
         }
 
-        if (!(canvas.getChildren().contains(tangentLine) && canvas.getChildren().contains(functionPositionOval))){
-            canvas.getChildren().addAll(tangentLine, functionPositionOval);
-        }
-        // update theh tangent line box
+
+        // create the XY box
+        // update tangent line box
         tangentLineBox.setLine(simpleLine);
-        // change the functon position text
+        // change the function position text
         functionPositionText.setText(String.format("X : %.2f\nY : %.2f", value.doubleValue() ,
                                                                             currentFunction.getValue(value.doubleValue())));
     }
@@ -724,7 +847,7 @@ public class GraphProjector extends Application {
 
     private final  void zoomCanvas(Number value){
         double factor = value.doubleValue() / 100;
-        // first delete the all of canvas system
+        // first delete all canvas system
         canvas.getChildren().clear();
 
         for (GraphFunction function : functionList){
@@ -744,7 +867,7 @@ public class GraphProjector extends Application {
             function.draw();
         }
 
-        // update the rueles
+        // update the rules
         xRule.update();
         yRule.update();
     }
@@ -813,6 +936,44 @@ public class GraphProjector extends Application {
                         public void run() {
                             label.setText(String.format("= %.5f", intgerateValue));
                             indicator.setVisible(false);
+                        }
+                    });
+
+                    Platform.runLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            // draw the integrate area in the canvas
+                            if (integrateArea == null){
+                                integrateArea = new Path();
+                                integrateArea.setStrokeWidth(1);
+                                integrateArea.setStroke(Color.ORANGERED);
+                                canvas.getChildren().add(integrateArea);
+                            }
+                            // clear the integrate area path
+                            integrateArea.getElements().clear();
+                            integrateArea.getElements().addAll(
+                                    new MoveTo(gridSystem.translateToCanvasX(x2), gridSystem.translateToCanvasY(currentFunction.getValue(x2))),
+                                    new LineTo(gridSystem.translateToCanvasX(x2), gridSystem.translateToCanvasY(0)),
+                                    new LineTo(gridSystem.translateToCanvasX(x1), gridSystem.translateToCanvasY(0)),
+                                    new LineTo(gridSystem.translateToCanvasX(x1), gridSystem.translateToCanvasY(currentFunction.getValue(x1)))
+                            );
+                            // start the loop for paths
+                            double x = x1;
+                            // choose increment for this loop
+                            double increment;
+                            if (gridSystem.getX1() - gridSystem.getX2() >= 10){
+                                increment = 0.1;
+                            }
+                            else {
+                                increment = 0.01;
+                            }
+                            while (x <= x2){
+                                x += increment;
+                                integrateArea.getElements().add(
+                                        new LineTo(gridSystem.translateToCanvasX(x), gridSystem.translateToCanvasY(currentFunction.getValue(x)))
+                                );
+                            }
+                            integrateArea.setFill(Color.rgb(240, 70, 7, 0.3));
                         }
                     });
                 }
