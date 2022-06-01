@@ -137,8 +137,11 @@ public class FunctionValue {
 
     public static double getValue(String text, double x) throws ScriptException{
         try {
-            // first replace the variable x with thhe value of the x
-            String replaceText = text.replaceAll("[xX]", String.valueOf(x));
+            String replaceText = null;
+            replaceText = text.replaceAll("exp|EXP", "e##");
+            // first replace the variable x with the value of the x
+            replaceText = replaceText.replaceAll("[xX]", String.valueOf(x));
+            replaceText = replaceText.replaceAll("e##", "exp");
             // pars to the function parser engine
             ResultSet set = statement.executeQuery(String.format("SELECT %s", replaceText));
             set.next();

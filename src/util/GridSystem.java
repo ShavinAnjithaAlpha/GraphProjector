@@ -29,13 +29,13 @@ public class GridSystem {
     private double lineStepY = 1;
     private final static double STEP_CHANGE_LIMIT = 10;
 
-    public final static double WIDTH = 1400;
-    public final static double HEIGHT = 1000;
+    public final static double WIDTH = 1200;
+    public final static double HEIGHT = 1200;
 
     // declare the canvas object for draw the grid lines
     Pane canvas = null;
 
-    // create the data mebers for grid colors
+    // create the data members for grid colors
     Color axisColor;
     Color lineColor;
 

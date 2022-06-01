@@ -1,7 +1,10 @@
+import com.sun.javafx.scene.control.skin.TitledPaneSkin;
 import com.sun.javaws.exceptions.InvalidArgumentException;
 import dialog.GridLimitDialog;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.beans.InvalidationListener;
+import javafx.beans.Observable;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -38,8 +41,7 @@ import widgets.ParametricFunctionPane;
 import widgets.Rule;
 import widgets.TangentLineBox;
 
-import java.util.ArrayList;
-import java.util.Arrays;
+import javax.swing.border.TitledBorder;
 import java.util.Optional;
 
 
@@ -49,6 +51,7 @@ public class GraphProjector extends Application {
     private static final double posLineLength = 30;
 
     private  Pane canvas;
+    private ScrollPane scrollPane;
     private Slider mainSlider;
     private TextArea mainFunctionBox;
     private Label XYLabel;
@@ -167,12 +170,34 @@ public class GraphProjector extends Application {
     }
 
     private void setUpRight(BorderPane borderPane){
+
+        // create the accordion for pack the tiles pane
+        final Accordion accordion = new Accordion();
+
+        // create the title pane for add panels
+        final TitledPane statusTiledPane = new TitledPane();
+        statusTiledPane.setText("Status");
+        setUpRightStatusPanel(statusTiledPane);
+
+        final TitledPane sliderPane = new TitledPane();
+        sliderPane.setText("Function Sliders");
+        setUpRightSliderPanel(sliderPane);
+
+        // add titles pane to accordion
+        accordion.getPanes().addAll(statusTiledPane, sliderPane);
+        accordion.setExpandedPane(statusTiledPane);
+        accordion.setPadding(new Insets(10));
+        // add to the border pane
+        borderPane.setRight(accordion);
+        BorderPane.setMargin(accordion, new Insets(10));
+    }
+
+    private void setUpRightStatusPanel(TitledPane panel){
         // create the vbox for pack the all of items
         final VBox vBox = new VBox(5);
-        // set the padding
-        vBox.setPadding(new Insets(5));
+        vBox.setPadding(new Insets(5)); // set the padding
 
-        Label label1 = new Label("Current Position");
+        Label label1 = new Label("Cursor Position");
         label1.setTextAlignment(TextAlignment.LEFT);
         // create the XY label for display the current position in the screen
         XYLabel = new Label("(0, 0)");
@@ -192,7 +217,7 @@ public class GraphProjector extends Application {
         // create the tangent line node object
         tangentLineBox = new TangentLineBox();
 
-        // create the another seperator
+        // create the another separator
         final Separator separator2 = new Separator();
         // create the label
         final Label label3 = new Label("function position");
@@ -205,14 +230,23 @@ public class GraphProjector extends Application {
 
         // add to the vbox
         vBox.getChildren().addAll(label1, XYLabel, separator1, label2, tangentLineBox, separator2, label3,
-                                    functionPositionText);
+                functionPositionText);
 
 
         setUpFunctionList(vBox);
         // set the border pane left as the vbox
-        borderPane.setRight(vBox);
-//        borderPane.getRight().setVisible(false);
-        BorderPane.setMargin(vBox, new Insets(10));
+        panel.setContent(vBox);
+        panel.setPadding(new Insets(5));
+    }
+
+    private void setUpRightSliderPanel(TitledPane panel){
+
+        // create the grid pane for add the sliders
+        final GridPane gridPane = new GridPane();
+        gridPane.setVgap(10);
+
+        panel.setContent(gridPane);
+        panel.setPadding(new Insets(5));
     }
 
     private final void setUpCenter(BorderPane borderPane){
@@ -238,7 +272,7 @@ public class GraphProjector extends Application {
         gridPane.add(canvas, 1, 0);
         gridPane.add(xRule, 1, 1);
         // create the scroll area for set up the canvas
-        ScrollPane scrollPane = new ScrollPane();
+        scrollPane = new ScrollPane();
         scrollPane.prefWidthProperty().bind(borderPane.prefWidthProperty());
 //        scrollPane.setMaxSize(1400, 1000);
         scrollPane.setContent(gridPane);
@@ -288,7 +322,7 @@ public class GraphProjector extends Application {
         // create the slider value box
         final Label sliderLabel = new Label(String.format("X : %.2f", gridSystem.getX1()));
 
-        // add the slider value property linstner
+        // add the slider value property listener
         mainSlider.valueProperty().addListener(
                 new ChangeListener<Number>() {
                     @Override
@@ -298,8 +332,16 @@ public class GraphProjector extends Application {
                         try {
                             updateTangentLine(newValue);
                         } catch (NullPointerException e) {
-                            System.out.println();
+                            System.out.println(e.getMessage());
                         }
+                        // scroll the scroll area
+                        if (gridSystem.translateToCanvasX(newValue.doubleValue()) > scrollPane.getWidth()) {
+                            scrollPane.setHvalue(gridSystem.translateToCanvasX(newValue.doubleValue()));
+                        }
+                        else if (gridSystem.translateToCanvasX(newValue.doubleValue()) < scrollPane.getHvalue()){
+                            scrollPane.setHvalue(0);
+                        }
+
                     }
                 }
         );
@@ -323,7 +365,6 @@ public class GraphProjector extends Application {
 
         // create the slider value box
         final Label sliderLabel = new Label(String.format("X : %.2f", gridSystem.getX1()));
-
         // add the slider value property linstner
         mainSlider.valueProperty().addListener(
                 new ChangeListener<Number>() {
@@ -428,8 +469,11 @@ public class GraphProjector extends Application {
         });
 
         // create the delete button
-        final Button deleteButton = new Button("delete");
-        deleteButton.setId("deleteButton");
+        final Button deleteButton = new Button("",
+                new ImageView(
+                        new Image("img/trash.png", 30, 30, true, true, true)
+                ));
+        deleteButton.setId("delete-button");
         // set the action to the delete button
         deleteButton.setOnAction((event -> {
             // call to delete the function from the list view
@@ -437,9 +481,26 @@ public class GraphProjector extends Application {
                 deleteFunction(graphFunctionListView.getSelectionModel().getSelectedItem());
             }
         }));
+
+        // delete all button
+        final Button deleteAllButton = new Button("Delete All",
+                new ImageView(
+                        new Image("img/trash.png", 30, 30, true, true, true)
+                ));
+        deleteAllButton.setId("delete-button");
+        // set the action to the delete button
+        deleteAllButton.setOnAction((event -> {
+           // delete all the function from the list view
+            for (GraphFunction function : functionList) {
+                deleteFunction(function);
+            }
+            mainSlider.setDisable(true);
+
+        }));
         // add to the grid pane
         gridPane.add(graphFunctionListView, 0, 0, 2, 1);
         gridPane.add(deleteButton, 0, 1);
+        gridPane.add(deleteAllButton, 1, 1);
 
         vBox.getChildren().addAll(titleLabel , gridPane);
     }
@@ -458,9 +519,79 @@ public class GraphProjector extends Application {
         final HBox hBox = new HBox(mainFunctionBox, colorPicker);
         hBox.setSpacing(10);
 
+        // create the combo box for select the graph function mode
+        final ComboBox<FunctionMode> modeComboBox = new ComboBox<>();
+        modeComboBox.getItems().addAll(
+                FunctionMode.NORMAL,
+                FunctionMode.DERIVATIVE,
+                FunctionMode.INTEGRATE);
+        modeComboBox.setTooltip(new Tooltip("How function plot in the canvas"));
+        modeComboBox.setPlaceholder(new Label("Function Mode"));
+        modeComboBox.getSelectionModel().selectFirst();
+
+        // tex fields for enter the initial condition for integrating function
+        final TextField initXField = new TextField();
+        initXField.setMaxWidth(60);
+        initXField.setPromptText("X0");
+
+        final TextField initYField = new TextField();
+        initYField.setMaxWidth(60);
+        initYField.setPromptText("Y0");
+
+        initXField.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ENTER){
+                initYField.requestFocus();
+            }
+        });
+
+        // initially hide the tex field for open in nesassary situations
+        initXField.setVisible(false);
+        initYField.setVisible(false);
+        // listener for changing text of function nox
+        mainFunctionBox.setOnKeyPressed(event -> {
+            // get the string of the function box
+            String text = mainFunctionBox.getText() + event.getText();
+            if (event.getCode() == KeyCode.BACK_SPACE){
+                text = text.substring(0, text.length() - 1);
+            }
+
+            if (text.indexOf('y') >= 0){
+                initXField.setVisible(true);
+                initYField.setVisible(true);
+                return;
+            }
+            if (modeComboBox.getSelectionModel().getSelectedItem() == FunctionMode.INTEGRATE){
+                return;
+            }
+            initXField.setVisible(false);
+            initYField.setVisible(false);
+            return;
+        });
+
+        modeComboBox.valueProperty().addListener(new ChangeListener<FunctionMode>() {
+            @Override
+            public void changed(ObservableValue<? extends FunctionMode> observable, FunctionMode oldValue, FunctionMode newValue) {
+                if (newValue == FunctionMode.INTEGRATE){
+                    initXField.setVisible(true);
+                    initYField.setVisible(true);
+                }
+                else{
+                    initXField.setVisible(false);
+                    initYField.setVisible(false);
+                }
+            }
+        });
+
+        // create h box for add these fields
+        final HBox hBox1 = new HBox(modeComboBox, initXField, initYField);
+        hBox1.setPadding(new Insets(5));
+        hBox1.setSpacing(10);
+
+
         // draw button
         final Button drawButton = new Button("Plot");
         drawButton.prefWidthProperty().bind(vBox.prefWidthProperty().subtract(30));
+        drawButton.setTooltip(new Tooltip("Plot the function"));
         drawButton.setPadding(new Insets(10, 10, 10, 10));
         drawButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
@@ -470,6 +601,20 @@ public class GraphProjector extends Application {
                     String functionText = mainFunctionBox.getText();
                     GraphFunction function = new GraphFunction(functionText , gridSystem, canvas);
                     function.setColor(colorPicker.getValue());
+                    function.changeMode(modeComboBox.getSelectionModel().getSelectedItem());
+
+                    // check if init boxes are visible
+                    if (initXField.isVisible() && initYField.isVisible()){
+                        if (!initXField.getText().isEmpty() && !initYField.getText().isEmpty()){
+                            function.setStartPoint(
+                                    new Point(
+                                            Double.parseDouble(initXField.getText()),
+                                            Double.parseDouble(initYField.getText())
+                                    )
+                            );
+                        }
+                    }
+
                     addFunction(function , true);
                 } catch (NumberFormatException e) {
                     // show the alert message
@@ -484,7 +629,7 @@ public class GraphProjector extends Application {
         // create the new another vbox
         VBox functionBox = new VBox(10);
         functionBox.setId("functionVBox");
-        functionBox.getChildren().addAll(hBox , drawButton);
+        functionBox.getChildren().addAll(hBox , drawButton, hBox1);
 
         final Label titleLabel = new Label("Function");
         titleLabel.setTextAlignment(TextAlignment.LEFT);
@@ -665,7 +810,8 @@ public class GraphProjector extends Application {
     private void setUpGrid(){
         // create the new grid
         try {
-            gridSystem = new GridSystem(-10, -10, 10, 10, 1500, 1000);
+            gridSystem = new GridSystem(-10, -10, 10, 10,
+                    GridSystem.WIDTH, GridSystem.HEIGHT);
         } catch (InvalidArgumentException e) {
             e.printStackTrace();
         }
@@ -734,24 +880,26 @@ public class GraphProjector extends Application {
         if (currentFunction == null){
             throw new NullPointerException("current function point to the null value.");
         }
-        // convert the value to double
-        // and create the new tangent line object
-        final Point center = currentFunction.getPoint(value.doubleValue());
-        // build the new simple line
-        final SimpleLine simpleLine = currentFunction.getTangentLine(value.doubleValue());
-        Point[] points = simpleLine.getPoints(center);
 
-        // draw the line between these two lines
-        Point startPoint = gridSystem.translateToCanvas(points[0]);
-        Point endPoint = gridSystem.translateToCanvas(points[1]);
+        // execute when tangent line mode is tangent line
+        if (tangentLineMode.equals("tangent line")){
 
-        Point canvasPoint = gridSystem.translateToCanvas(center);
+            // call to the tangent line producer function in FunctionFactory Class
+            Point[] points = FunctionFactory.getTangentLineToCanvas(
+                    currentFunction, value.doubleValue(), gridSystem
+            );
 
-        if (tangentLineMode == "tangent line"){
+            if (points == null){
+                // change the function position text
+                functionPositionText.setText(
+                        FunctionFactory.getCurrentPointAsString(currentFunction, value.doubleValue()));
+                return;
+            }
 
             if (this.tangentLine == null){
                 // create the new tangent line
-                this.tangentLine = new Line(startPoint.getX(), startPoint.getY(), endPoint.getX(), endPoint.getY());
+                this.tangentLine = new Line(points[1].getX(), points[1].getY(),
+                        points[2].getX(), points[2].getY());
                 this.tangentLine.setEffect(new DropShadow(BlurType.GAUSSIAN, Color.BLACK, 20, 0.1, 0, 0));
                 this.tangentLine.setStroke(Color.RED);
                 this.tangentLine.setStrokeWidth(2);
@@ -759,7 +907,7 @@ public class GraphProjector extends Application {
                 this.tangentLine.setSmooth(true);
 
                 // create the function circle
-                functionPositionOval = new Ellipse(canvasPoint.getX(), canvasPoint.getY(),
+                functionPositionOval = new Ellipse(points[0].getX(), points[0].getY(),
                                             7, 7);
                 functionPositionOval.setStrokeWidth(5);
                 functionPositionOval.setEffect(new DropShadow(BlurType.GAUSSIAN, Color.BLACK, 20, 0.1, 0, 0));
@@ -770,69 +918,66 @@ public class GraphProjector extends Application {
                 canvas.getChildren().addAll(this.tangentLine, functionPositionOval);
             }
             else{
-                setPoints(this.tangentLine, startPoint, endPoint);
+                setPoints(this.tangentLine, points[1], points[2]);
                 // set the oval position
-                functionPositionOval.setCenterX(canvasPoint.getX());
-                functionPositionOval.setCenterY(canvasPoint.getY());
+                functionPositionOval.setCenterX(points[0].getX());
+                functionPositionOval.setCenterY(points[0].getY());
             }
 
             if (!(canvas.getChildren().contains(tangentLine) && canvas.getChildren().contains(functionPositionOval))){
                 canvas.getChildren().addAll(tangentLine, functionPositionOval);
             }
-        }
-        else if (tangentLineMode == "normal line"){
-            // create the normal line
-            final SimpleLine normalLiene = currentFunction.getNormalLine(value.doubleValue());
-            Point[] normalPoints = normalLiene.getPoints(center);
 
-            Point normalStartPoint = gridSystem.translateToCanvas(normalPoints[0]);
-            Point normalEndPoint = gridSystem.translateToCanvas(normalPoints[1]);
+            tangentLineBox.setLine(FunctionFactory.getTangentLine(currentFunction, value.doubleValue()));
+
+        }
+        // execute when tangent line mode in normal line
+        else if (tangentLineMode.equals("normal line")){
+
+            Point[] points = FunctionFactory.getNormalLineToCanvas(
+                    currentFunction, value.doubleValue(), gridSystem
+            );
+            if (points == null){
+                // change the function position text
+                functionPositionText.setText(
+                        FunctionFactory.getCurrentPointAsString(currentFunction, value.doubleValue()));
+                return;
+            }
 
             if (this.tangentLine == null){
                 // create the new tangent line
-                this.tangentLine = new Line(normalStartPoint.getX(), normalStartPoint.getY(), normalEndPoint.getX(), normalEndPoint.getY());
+                this.tangentLine = new Line(points[1].getX(), points[1].getY(),
+                        points[2].getX(), points[2].getY());
                 this.tangentLine.setStroke(Color.RED);
                 this.tangentLine.setStrokeWidth(3);
                 this.tangentLine.setSmooth(true);
 
-                // add to the canvas
-                canvas.getChildren().add(this.tangentLine);
-
                 // create the function circle
-                functionPositionOval = new Ellipse();
-                functionPositionOval.setCenterX(canvasPoint.getX());
-                functionPositionOval.setCenterY(canvasPoint.getY());
+                functionPositionOval = new Ellipse(points[0].getX(), points[0].getY(), 7, 7);
                 functionPositionOval.setStrokeWidth(5);
-                functionPositionOval.setRadiusX(7);
-                functionPositionOval.setRadiusY(7);
-
                 functionPositionOval.setStroke(Color.HOTPINK);
                 functionPositionOval.setFill(Color.RED);
 
                 // add to the canvas
-                canvas.getChildren().add(functionPositionOval);
+                canvas.getChildren().addAll(functionPositionOval, tangentLine);
             }
             else{
-                setPoints(this.tangentLine, normalStartPoint, normalEndPoint);
+                setPoints(this.tangentLine, points[1], points[2]);
                 // set the oval position
-                functionPositionOval.setCenterX(canvasPoint.getX());
-                functionPositionOval.setCenterY(canvasPoint.getY());
+                functionPositionOval.setCenterX(points[0].getX());
+                functionPositionOval.setCenterY(points[0].getY());
             }
 
             if (!(canvas.getChildren().contains(tangentLine) && canvas.getChildren().contains(functionPositionOval))){
                 canvas.getChildren().addAll(tangentLine, functionPositionOval);
             }
-
+            tangentLineBox.setLine(FunctionFactory.getNormalLine(currentFunction, value.doubleValue()));
 
         }
 
-
-        // create the XY box
-        // update tangent line box
-        tangentLineBox.setLine(simpleLine);
         // change the function position text
-        functionPositionText.setText(String.format("X : %.2f\nY : %.2f", value.doubleValue() ,
-                                                                            currentFunction.getValue(value.doubleValue())));
+        functionPositionText.setText(
+                FunctionFactory.getCurrentPointAsString(currentFunction, value.doubleValue()));
     }
 
     private static void setPoints(Line line , Point p1, Point p2){
@@ -892,7 +1037,7 @@ public class GraphProjector extends Application {
         // first delete the canvas grid system and redraw
         canvas.getChildren().clear();
         gridSystem.refresh();
-        // delete the all of the function graph
+        // delete the all function graph
         for (GraphFunction function : functionList){
             function.delete();
             function.draw();
@@ -942,14 +1087,14 @@ public class GraphProjector extends Application {
                     Platform.runLater(new Runnable() {
                         @Override
                         public void run() {
-                            // draw the integrate area in the canvas
+                            // draw integrate area in the canvas
                             if (integrateArea == null){
                                 integrateArea = new Path();
                                 integrateArea.setStrokeWidth(1);
                                 integrateArea.setStroke(Color.ORANGERED);
                                 canvas.getChildren().add(integrateArea);
                             }
-                            // clear the integrate area path
+                            // clear integrate area path
                             integrateArea.getElements().clear();
                             integrateArea.getElements().addAll(
                                     new MoveTo(gridSystem.translateToCanvasX(x2), gridSystem.translateToCanvasY(currentFunction.getValue(x2))),

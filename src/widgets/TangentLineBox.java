@@ -18,6 +18,7 @@ public class TangentLineBox extends VBox {
     private Label intersectLabel;
 
     public TangentLineBox(){
+
         this.line = line;
         Label label1 = new Label("equation");
         label1.setTextAlignment(TextAlignment.RIGHT);
@@ -37,7 +38,7 @@ public class TangentLineBox extends VBox {
         tangentLabel.setTextAlignment(TextAlignment.RIGHT);
         intersectLabel.setTextAlignment(TextAlignment.RIGHT);
 
-        // creaee the hboxc
+        // create the h box
         final HBox hBox = new HBox(15);
         hBox.getChildren().addAll(label2, label3);
 

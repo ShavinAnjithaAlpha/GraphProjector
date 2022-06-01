@@ -3,6 +3,8 @@ package util;
 import javax.script.ScriptException;
 
 public class Function {
+    // static data member
+    public final static char[] validChars = new char[] {'a', 'b', 'd', 'e', 'f', 'i', 'j', 'k'};
 
     // declare the main data members
     final protected int ID;
@@ -39,6 +41,28 @@ public class Function {
         return 0;
     }
 
+    public double getValueWithY(double x, double y){
+        try{
+            return FunctionValue.getValue(
+                    function.replaceAll("y", String.format("(%s)", String.valueOf(y))), x);
+        }
+        catch (ScriptException ex){
+//            ex.printStackTrace();
+        }
+        return 0;
+    }
+
+    public double getValueWithY(Point point){
+        try{
+            return FunctionValue.getValue(
+                    function.replaceAll("y", String.format("(%s)", String.valueOf(point.getY()))), point.getY());
+        }
+        catch (ScriptException ex){
+            ex.printStackTrace();
+        }
+        return 0;
+    }
+
     public void setGrid(GridSystem grid) {
         this.grid = grid;
     }
@@ -48,9 +72,18 @@ public class Function {
         return (getValue(x + increment/2) - getValue(x - increment/2)) / increment;
     }
 
+    private double getSecondDerivative(double x){
+        return (getTangent(x + increment/2) - getTangent(x - increment/2)) / increment;
+    }
+
     public SimpleLine getTangentLine(double x){
         Point point = new Point(x , getValue(x));
         return new SimpleLine(getTangent(x), point);
+    }
+
+    public SimpleLine getSecondTangentLine(double x){
+        Point point = new Point(x, getTangent(x));
+        return new SimpleLine(getSecondDerivative(x), point);
     }
 
     public SimpleLine getNormalLine(double x){
@@ -58,6 +91,10 @@ public class Function {
         return new SimpleLine(-1/getTangent(x), point);
     }
 
+    public SimpleLine getSecondNormalLine(double x){
+        Point point = getPoint(x);
+        return new SimpleLine(-1/getSecondDerivative(x), point);
+    }
 
     public String getFunction() {
         return function;

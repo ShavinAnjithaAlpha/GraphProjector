@@ -1,7 +1,7 @@
 package util;
 
+import javafx.scene.input.MouseEvent;
 
-import java.awt.event.MouseEvent;
 import java.util.Objects;
 
 public class Point {

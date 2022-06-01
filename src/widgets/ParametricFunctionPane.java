@@ -1,6 +1,5 @@
 package widgets;
 
-import com.sun.javaws.exceptions.InvalidArgumentException;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -9,9 +8,17 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
+import javafx.geometry.Pos;
 import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.effect.BlurType;
 import javafx.scene.effect.DropShadow;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
@@ -19,12 +26,16 @@ import javafx.scene.shape.Ellipse;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Path;
 import javafx.scene.shape.StrokeLineCap;
+import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import javafx.util.Callback;
+import javafx.util.StringConverter;
 import util.*;
+import util.Point;
 
-import javax.swing.*;
+import java.awt.event.MouseEvent;
+
 
 public class ParametricFunctionPane extends BorderPane {
 
@@ -39,6 +50,10 @@ public class ParametricFunctionPane extends BorderPane {
     private Pane canvas;
     private Line tangentLine;
     private Ellipse positionOval;
+
+    private Label cursorPositionLabel;
+    private TangentLineBox tangentLineBox;
+    private Text functionPositionLabel;
 
     public ParametricFunctionPane(GridSystem gridSystem){
         this.gridSystem = gridSystem;
@@ -55,22 +70,80 @@ public class ParametricFunctionPane extends BorderPane {
         vbox.setPrefWidth(350);
         vbox.setPadding(new Insets(15));
 
-        setUpFunctionBox(vbox);
+        setUpFunctionBox(vbox); // add the function entering panel
+        setUpZoomBox(vbox); // add zooming panel
 
-        setLeft(vbox);
+        setLeft(vbox); // set left side as the v box
     }
 
     private void setUpRight(){
+        // create an accordion
+        final Accordion accordion = new Accordion();
+        accordion.setPadding(new Insets(10));
+
+        // create titles pane for graph status
+        final TitledPane statusPane = new TitledPane();
+        statusPane.setText("Status");
+        setStatusPanel(statusPane);
+
+        // add to the accordion
+        accordion.getPanes().addAll(statusPane);
+        accordion.setExpandedPane(statusPane);
+        setRight(accordion);
+
+    }
+
+    private final void setStatusPanel(TitledPane panel){
         // create the vbox for package sub nodes
         VBox vBox = new VBox();
         vBox.setMinWidth(300);
         vBox.setPadding(new Insets(10));
 
+        setUpInfoPanel(vBox);
         // set up the function list node
         setUpFunctionList(vBox);
 
-        setRight(vBox);
         setMargin(vBox, new Insets(15));
+        // add to the panel
+        panel.setContent(vBox);
+    }
+
+    private final void setUpInfoPanel(VBox vBox){
+        // create the current position labels
+        Label cursorPositionText = new Label("Cursor Position");
+        // crate the position label
+        cursorPositionLabel = new Label();
+        cursorPositionLabel.setTextAlignment(TextAlignment.CENTER);
+        cursorPositionLabel.setId("XYLabel");
+        cursorPositionLabel.setPadding(new Insets(20, 10, 20, 10));
+        cursorPositionLabel.setFont(new Font("Ubuntu mono", 15));
+
+        Separator separator = new Separator(Orientation.HORIZONTAL);
+//        separator.setPadding(new Insets(10, 5, 10, 5));
+
+        Label tangentLineText = new Label("Tangent Line");
+
+        // create the tangent line panel
+        tangentLineBox = new TangentLineBox();
+        // create the another separator
+        Separator separator1 = new Separator(Orientation.HORIZONTAL);
+        separator1.setPadding(new Insets(10, 5, 10, 5));
+
+        // create the function position label
+        Label functionPositionText = new Label("Function Position");
+
+        // create the function position label
+        // create the label for X ana Y
+        functionPositionLabel = new Text(String.format("X : %.3f%nY : %.3f", 0.0, 0.0));
+        functionPositionLabel.setFont(new Font("verdana", 25));
+        functionPositionLabel.setFill(Color.ORANGERED);
+
+        // create the vbox for pack the every node in this method
+        VBox mainVBox = new VBox(cursorPositionText, cursorPositionLabel, separator, tangentLineText,
+                tangentLineBox, separator1, functionPositionText, functionPositionLabel);
+        vBox.setPadding(new Insets(0, 10, 0, 10));
+        vBox.getChildren().add(mainVBox);
+
     }
 
     private void setUpFunctionList(VBox vBox){
@@ -113,7 +186,11 @@ public class ParametricFunctionPane extends BorderPane {
         // label for title
         final Label titleLabel = new Label("Parametric Equations");
         // delete button for function
-        final Button deleteButton = new Button("Delete");
+        final Button deleteButton = new Button("Delete",
+                new ImageView(
+                        new Image("img/trash.png", 30, 30, true, true, true)
+                ));
+        deleteButton.setId("delete-button");
         deleteButton.setOnMouseClicked((event -> {
             // remove from the selected function from the list
             if (functionListView.getSelectionModel().getSelectedItem() != null){
@@ -143,6 +220,12 @@ public class ParametricFunctionPane extends BorderPane {
             textArea.setId("parametric-text-area");
         }
 
+        xEquationText.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.RIGHT){
+                yEquationText.requestFocus();
+            }
+        });
+
         xEquationText.setPromptText("Equation for X");
         yEquationText.setPromptText("Equation for Y");
 
@@ -158,8 +241,59 @@ public class ParametricFunctionPane extends BorderPane {
         limitBox1.setPrefWidth(80);
         limitBox2.setPrefWidth(80);
 
+        yEquationText.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.RIGHT){
+                limitBox1.requestFocus();
+            }
+        });
+
+        limitBox1.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ENTER){
+                limitBox2.requestFocus();
+            }
+        });
+
         hBox.getChildren().addAll(new Label("t: "), limitBox1, limitBox2, colorPicker);
 
+        // create the function mode combo box
+        final ComboBox<FunctionMode> functionModeComboBox = new ComboBox<>();
+        functionModeComboBox.getItems().addAll(
+                FunctionMode.NORMAL,
+                FunctionMode.DERIVATIVE,
+                FunctionMode.INTEGRATE
+        );
+        functionModeComboBox.setTooltip(new Tooltip("how draw the parametric function in plane"));
+        functionModeComboBox.getSelectionModel().selectFirst();
+
+        // create the initial condition box for DEs
+        final TextField x0Box = new TextField();
+        final TextField y0Box = new TextField();
+
+        x0Box.setPromptText("X0");
+        y0Box.setPromptText("Y0");
+        // hide the x0 and y0 box
+        x0Box.setVisible(false);
+        y0Box.setVisible(false);
+
+        // create the h box for add the combo box and these initial condition boxes
+        final HBox hBox1 = new HBox(functionModeComboBox, x0Box, y0Box);
+        // add listener to the combo box for show anf hide the these boxes
+        functionModeComboBox.valueProperty().addListener(
+                new ChangeListener<FunctionMode>() {
+                    @Override
+                    public void changed(ObservableValue<? extends FunctionMode> observable, FunctionMode oldValue, FunctionMode newValue) {
+                        if (newValue == FunctionMode.INTEGRATE){
+                            // show the initial condition boxes
+                            x0Box.setVisible(true);
+                            y0Box.setVisible(true);
+                        }
+                        else{
+                            x0Box.setVisible(false);
+                            y0Box.setVisible(false);
+                        }
+                    }
+                }
+        );
 
         // draw button for plot
         Button drawButton = new Button("Plot");
@@ -181,13 +315,34 @@ public class ParametricFunctionPane extends BorderPane {
                              = new ParametricGraphFunction(functionX, functionY,
                                                             gridSystem, canvas, t1, t2);
                     function.setColor(colorPicker.getValue()); // set the function path color
+                    function.setFunctionMode(functionModeComboBox.getSelectionModel().getSelectedItem());
+
+                    if (functionModeComboBox.getSelectionModel().getSelectedItem() == FunctionMode.INTEGRATE){
+                        // get the initial condition
+                        if (x0Box.getText().isEmpty() || y0Box.getText().isEmpty()){
+                            throw new IllegalArgumentException("Please enter the initial conditions.");
+                        }
+                        //set the initial condition
+                        function.setStartPoint(
+                                Double.parseDouble(x0Box.getText()),
+                                Double.parseDouble(y0Box.getText())
+                        );
+                    }
+                    else{
+                        // check if function have x or y characters
+                        if (!functionX.equals(functionX.replaceAll("[xyXY]", "")) ||
+                        !functionY.equals(functionY.replaceAll("[xyXY]", ""))){
+                            throw new NumberFormatException("Remove the X and Y characters from the equations.");
+                        }
+                    }
+
                     addFunction(function , true); // draw function and add to the list
 
                 } catch (NumberFormatException e) {
                     // show the alert message
                     Alert warningBox =new Alert(Alert.AlertType.ERROR);
                     warningBox.setTitle("Function Format");
-                    warningBox.setContentText("Please Enter the valid function for drawing!!!");
+                    warningBox.setContentText(e.getMessage());
                     warningBox.show();
                 } catch (Exception e) {
                     // show the alert message
@@ -216,12 +371,90 @@ public class ParametricFunctionPane extends BorderPane {
         gridPane.add(xEquationText, 1, 1);
         gridPane.add(yEquationText, 1, 2);
         gridPane.add(hBox, 0, 3, 2, 1);
-        gridPane.add(drawButton, 0, 4, 2, 1);
+        gridPane.add(hBox1,  0, 4, 2, 1);
+        gridPane.add(drawButton, 0, 5, 2, 1);
 
         // create the vbox for add to the main vbox
 
         final Label titleLabel = new Label("Function");
         titleLabel.setTextAlignment(TextAlignment.LEFT);
+
+        vBox.getChildren().addAll(titleLabel, gridPane);
+
+    }
+
+    private final void setUpZoomBox(VBox vBox){
+        // create the grid pane for this
+        final GridPane gridPane = new GridPane();
+        gridPane.setVgap(10);
+        gridPane.setHgap(15);
+        gridPane.setPrefWidth(350);
+
+        // create the title label
+        Label titleLabel = new Label("zoom");
+        titleLabel.setTextAlignment(TextAlignment.LEFT);
+
+        // create the zomm slider
+        final Slider zoomSlider = new Slider();
+        zoomSlider.setOrientation(Orientation.HORIZONTAL);
+        zoomSlider.setMin(100);
+        zoomSlider.setMax(500);
+        zoomSlider.setPrefWidth(350);
+        zoomSlider.setLabelFormatter(new StringConverter<Double>() {
+            @Override
+            public String toString(Double object) {
+                return String.format("%.1f %%", object);
+            }
+
+            @Override
+            public Double fromString(String string) {
+                return null;
+            }
+        });
+
+        // create the label for zoom slider value
+        Label zoomLabel = new Label("100%");
+
+        // set the zoom slider actions
+        zoomSlider.valueProperty().addListener(
+                new ChangeListener<Number>() {
+                    @Override
+                    public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
+                        // zooming the canvas
+                        zoomCanvas(newValue);
+                        // set the zoom slider vale
+                        zoomLabel.setText(String.format("%.1f %%", newValue.doubleValue()));
+                    }
+                }
+        );
+
+        // create the zoom in and zoom out buttons
+        final Button zoomInButton = new Button("+");
+        final Button zoomOutButton = new Button("-");
+
+        zoomInButton.setId("zoomButton");
+        zoomOutButton.setId("zoomButton");
+        // create the setOnaction to the slider
+        zoomInButton.setOnAction((event -> {
+            if (zoomSlider.getValue() < zoomSlider.getMax() - 20){
+                zoomSlider.setValue(zoomSlider.getValue() + 20);
+
+            }
+        }));
+
+        zoomOutButton.setOnAction(event -> {
+            if (zoomSlider.getValue() > zoomSlider.getMin() + 20){
+                zoomSlider.setValue(zoomSlider.getValue() - 20);
+            }
+        });
+
+        // add to the grid
+        gridPane.add(zoomSlider, 0, 0, 2, 1);
+        gridPane.add(zoomLabel, 2, 0);
+        gridPane.add(zoomInButton, 0, 1);
+        gridPane.add(zoomOutButton, 1, 1);
+
+        gridPane.setId("zoomBox");
 
         vBox.getChildren().addAll(titleLabel, gridPane);
 
@@ -263,6 +496,18 @@ public class ParametricFunctionPane extends BorderPane {
         vBox.getChildren().addAll(scrollPane, sliderBox);
         // set the vbox as the center fo the border pane
         setCenter(vBox);
+
+        // implement the canvas event handlers
+        canvas.setOnMouseMoved((event) -> {
+            // set the canvas position on cursor position text label
+            Point point = gridSystem.translateToGrid(new Point(event));
+            cursorPositionLabel.setText(
+                    String.format("(%.3f, %.3f)", point.getX(), point.getY())
+            );
+            // update the x and y rules
+            xRule.update(event);
+            yRule.update(event);
+        });
 
     }
 
@@ -388,6 +633,40 @@ public class ParametricFunctionPane extends BorderPane {
                 canvas.getChildren().addAll(tangentLine, positionOval);
             }
 
+            // update the function position text label
+            functionPositionLabel.setText(
+                    FunctionFactory.getCurrentPointAsString(currentFunction, value.doubleValue()));
+
+
         }
     }
+
+    // zooming the canvas
+    private final  void zoomCanvas(Number value){
+        double factor = value.doubleValue() / 100;
+        // first delete all canvas system
+        canvas.getChildren().clear();
+
+        for (ParametricGraphFunction function : functionList){
+            function.delete();
+        }
+        // redraw the grid system
+        // set the new value for the grid limits
+        try {
+            gridSystem.setWidth(GridSystem.getBaseWidth() * factor);
+            gridSystem.setHeight(GridSystem.getBasicHeight() * factor);
+            gridSystem.refresh();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        // draw the all the  function again
+        for (ParametricGraphFunction function : functionList) {
+            function.draw();
+        }
+
+        // update the rules
+        xRule.update();
+        yRule.update();
+    }
+
 }

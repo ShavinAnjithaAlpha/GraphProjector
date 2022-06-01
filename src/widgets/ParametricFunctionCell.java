@@ -1,9 +1,12 @@
 package widgets;
 
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
-import javafx.scene.layout.GridPane;
+import javafx.scene.layout.*;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Font;
 import util.ParametricGraphFunction;
 
 public class ParametricFunctionCell extends ListCell<ParametricGraphFunction> {
@@ -22,19 +25,21 @@ public class ParametricFunctionCell extends ListCell<ParametricGraphFunction> {
                     String.format("Y : %s",
                             item.getyFunction().toString().replaceAll("x", "t"))
             );
+            xFunctionLabel.setFont(new Font(22));
+            yFunctionLabel.setFont(new Font(22));
 
             // create the color box
-            Rectangle colorRect = new Rectangle(20, 80);
+            Rectangle colorRect = new Rectangle(30, 30);
             colorRect.setFill(item.getColor());
+            colorRect.setStrokeWidth(0);
             // create the grid for pack the item
-            GridPane gridPane = new GridPane();
-            gridPane.setVgap(10);
-            gridPane.add(xFunctionLabel, 0, 0);
-            gridPane.add(yFunctionLabel, 0, 1);
-            gridPane.add(colorRect, 1, 0, 1, 2);
+            VBox vBox = new VBox(xFunctionLabel, yFunctionLabel);
+            HBox hBox = new HBox(vBox, colorRect);
+            hBox.setSpacing(30);
+            hBox.setAlignment(Pos.CENTER);
 
             setText(null);
-            setGraphic(gridPane);
+            setGraphic(hBox);
         }
         else{
             setText(null);
