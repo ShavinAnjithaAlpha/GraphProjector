@@ -1,10 +1,6 @@
-import com.sun.javafx.scene.control.skin.TitledPaneSkin;
-import com.sun.javaws.exceptions.InvalidArgumentException;
 import dialog.GridLimitDialog;
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.beans.InvalidationListener;
-import javafx.beans.Observable;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -41,7 +37,6 @@ import widgets.ParametricFunctionPane;
 import widgets.Rule;
 import widgets.TangentLineBox;
 
-import javax.swing.border.TitledBorder;
 import java.util.Optional;
 
 
@@ -133,7 +128,7 @@ public class GraphProjector extends Application {
         return borderPane;
     }
 
-    private final MenuBar setUpMenu(){
+    private MenuBar setUpMenu(){
         // create the menu bar
         final MenuBar menuBar = new MenuBar();
         // create the menu for menu bar
@@ -147,7 +142,7 @@ public class GraphProjector extends Application {
 
     }
 
-    private final void createOptionMenu(Menu optionMenu){
+    private void createOptionMenu(Menu optionMenu){
         // create the tangent line change mode menu item
         Menu tangentModeMenu = new Menu("tangent line mode");
         // create the radio button for this
@@ -249,7 +244,7 @@ public class GraphProjector extends Application {
         panel.setPadding(new Insets(5));
     }
 
-    private final void setUpCenter(BorderPane borderPane){
+    private void setUpCenter(BorderPane borderPane){
 
         // create the vbox for pack the slider and canvas
         final VBox vBox = new VBox(10);
@@ -310,7 +305,7 @@ public class GraphProjector extends Application {
     }
 
     // setup the slider
-    private final HBox setUpSlider(){
+    private HBox setUpSlider(){
         // create the hox for pack the widgets
         final HBox hbox = new HBox(10);
         // create the main slider of the window
@@ -354,7 +349,7 @@ public class GraphProjector extends Application {
         return hbox;
     }
 
-    private final void setUpBottom(BorderPane borderPane){
+    private void setUpBottom(BorderPane borderPane){
         // create the hox for pack the widgets
         final HBox hbox = new HBox(10);
         // create the main slider of the window
@@ -389,7 +384,7 @@ public class GraphProjector extends Application {
         borderPane.setBottom(hbox);
     }
 
-    private final void setUpToolBox(BorderPane borderPane){
+    private void setUpToolBox(BorderPane borderPane){
         // create the mein vbox for this
         final VBox vBox = new VBox(20);
         vBox.setPrefWidth(400);
@@ -505,13 +500,13 @@ public class GraphProjector extends Application {
         vBox.getChildren().addAll(titleLabel , gridPane);
     }
 
-    private final void setUpFunctionBox(VBox vBox){
+    private void setUpFunctionBox(VBox vBox){
         // create the group box
         // create the line edit and add button for this
         mainFunctionBox = new TextArea();
         mainFunctionBox.prefWidthProperty().bind(vBox.prefWidthProperty().subtract(30));
         mainFunctionBox.setPrefHeight(80);
-        mainFunctionBox.setPromptText("Enter a function");
+        mainFunctionBox.setPromptText("Enter an expression");
 
         // create the color chooser
         final ColorPicker colorPicker = new ColorPicker(Color.ORANGE);
@@ -550,7 +545,7 @@ public class GraphProjector extends Application {
         // listener for changing text of function nox
         mainFunctionBox.setOnKeyPressed(event -> {
             // get the string of the function box
-            String text = mainFunctionBox.getText() + event.getText();
+            String text = mainFunctionBox.getText(); //+ event.getText();
             if (event.getCode() == KeyCode.BACK_SPACE){
                 text = text.substring(0, text.length() - 1);
             }
@@ -565,7 +560,6 @@ public class GraphProjector extends Application {
             }
             initXField.setVisible(false);
             initYField.setVisible(false);
-            return;
         });
 
         modeComboBox.valueProperty().addListener(new ChangeListener<FunctionMode>() {
@@ -812,7 +806,7 @@ public class GraphProjector extends Application {
         try {
             gridSystem = new GridSystem(-10, -10, 10, 10,
                     GridSystem.WIDTH, GridSystem.HEIGHT);
-        } catch (InvalidArgumentException e) {
+        } catch (IllegalArgumentException e) {
             e.printStackTrace();
         }
         gridSystem.setCanvas(canvas); // set the canvas

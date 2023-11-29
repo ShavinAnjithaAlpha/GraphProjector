@@ -1,6 +1,5 @@
 package util;
 
-import com.sun.javaws.exceptions.InvalidArgumentException;
 import javafx.scene.Node;
 import javafx.scene.effect.BlurType;
 import javafx.scene.effect.DropShadow;
@@ -39,12 +38,12 @@ public class GridSystem {
     Color axisColor;
     Color lineColor;
 
-    public GridSystem(double x1, double y1, double x2, double y2, double width, double height) throws InvalidArgumentException {
+    public GridSystem(double x1, double y1, double x2, double y2, double width, double height) throws IllegalArgumentException {
         if (width < 0 && height < 0) {
-            throw new InvalidArgumentException(new String[]{"cannot take the negative values for width or height."});
+            throw new IllegalArgumentException("cannot take the negative values for width or height.");
         }
         if (x1 >= x2 || y1 >= y2) {
-            throw new InvalidArgumentException(new String[]{"cannot be a same value for x and y."});
+            throw new IllegalArgumentException("cannot be a same value for x and y.");
         }
         this.x1 = x1;
         this.y1 = y1;
@@ -368,7 +367,7 @@ public class GridSystem {
         GridSystem grid = null;
         try {
             grid = new GridSystem(this.x1, this.y1, this.x2, this.y2, getWidth(), getHeight());
-        } catch (InvalidArgumentException e) {
+        } catch (IllegalArgumentException e) {
             e.printStackTrace();
         }
         return grid;

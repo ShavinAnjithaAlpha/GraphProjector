@@ -4,7 +4,6 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import java.sql.*;
-import java.util.Arrays;
 
 public class FunctionValue {
 
@@ -16,7 +15,7 @@ public class FunctionValue {
 
     static {
         try {
-            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/bank_system", "root", "Sha2002@vin");
+            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/sys", "root", "Sha2002@vin");
             statement = connection.createStatement();
         } catch (SQLException e) {
             e.printStackTrace();

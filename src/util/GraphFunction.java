@@ -7,7 +7,6 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.LineTo;
 import javafx.scene.shape.MoveTo;
 import javafx.scene.shape.Path;
-import javafx.scene.shape.PathElement;
 
 public class GraphFunction extends Function{
 
@@ -62,18 +61,20 @@ public class GraphFunction extends Function{
         final Point startPoint = grid.translateToCanvas(getPoint(grid.getX1()));
         final MoveTo moveTo = new MoveTo(startPoint.getX(), startPoint.getY());
 
-        // add to the Path elemtn
+        // add to the Path element
         graphPath.setStrokeWidth(4);
         graphPath.getElements().add(moveTo);
 
         double x = grid.getX1();
+        LineTo lineTo = new LineTo();
+
         while (x <= grid.getX2()){
             // increment the x value
             x += stepSize;
             // get the new point
             Point endPoint = grid.translateToCanvas(getPoint(x));
             // draw the line
-            final LineTo lineTo = new LineTo(endPoint.getX(), endPoint.getY());
+            lineTo = new LineTo(endPoint.getX(), endPoint.getY());
             // get the path and add
             graphPath.getElements().add(lineTo);
 
